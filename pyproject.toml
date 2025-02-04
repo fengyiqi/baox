@@ -9,7 +9,7 @@ description = "A JAX-based Bayesian Optimization framework"
 authors = [{ name = "Yiqi Feng", email = "yiqi.feng@hotmail.com" }]
 license = { text = "MIT" }
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.12"
 dependencies = [
     "jax",
     "jaxlib",
