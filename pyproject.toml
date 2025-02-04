@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "baox"
+version = "0.1.0"
+description = "A JAX-based Bayesian Optimization framework"
+authors = [{ name = "Yiqi Feng", email = "yiqi.feng@hotmail.com" }]
+license = { text = "MIT" }
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "jax",
+    "jaxlib",
+    "matplotlib",
+    "numpy",
+    "scipy",
+    "setuptools"
+]
+
+[tool.setuptools]
+packages = ["baox"]
+
+[project.optional-dependencies]
+dev = ["pytest", "black", "flake8"]
+
+[project.urls]
+Homepage = "https://github.com/yourusername/baox"
+Repository = "https://github.com/yourusername/baox"
