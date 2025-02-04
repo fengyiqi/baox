@@ -1,6 +1,6 @@
-# Bayesian Optimization with Jax (BOAX)
+# Bayesian Optimization with Jax (BAOX)
 
-- **boax** is a Python package for Gaussian process (GP) and single- or multi-objective Bayesian optimization. 
+- **baox** is a Python package for Gaussian process (GP) and single- or multi-objective Bayesian optimization. 
 - It is built with Jax, a numerical computing library that allows for automatic differentiation and GPU acceleration.
 - The package is designed to be modular and flexible, allowing users to easily define their own acquisition functions, kernels, and optimization algorithms.
 
