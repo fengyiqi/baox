@@ -15,7 +15,7 @@ def objective_function(x):
 
 bounds = (-2, 2)
 key = jax.random.key(0)
-bo = BayesianOptimization(objective_function, bounds)
-X_samples, y_samples = bo.run(key, n_iter=15, use_mc=True, n_samples=10)
+bo = BayesianOptimization(objective_function, bounds, batch_size=1, n_iter=15)
+X_samples, y_samples = bo.run(key)
 
 print(f"Best point found: {X_samples[jnp.argmax(y_samples)]}")

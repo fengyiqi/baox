@@ -36,7 +36,7 @@ if __name__ == "__main__":
         ("red", MaternKernel(lengthscale=1.0, variance=1.0, nu=2.5))
     ]
 
-    plt.figure(figsize=(8, 5))
+    plt.figure(figsize=(10, 5))
     plt.scatter(X_train, y_train, color="black", label="Training Data")
     plt.plot(X_test, Y_test, color="black", linestyle="--", label="True Function")
 
@@ -60,5 +60,7 @@ if __name__ == "__main__":
     
     plt.legend()
     plt.title("Gaussian Process Regression")
+    plt.grid()
+    plt.tight_layout()
     plt.savefig("gp_regression.png")
     plt.show()
