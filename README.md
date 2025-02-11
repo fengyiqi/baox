@@ -25,6 +25,16 @@ An example figure of GP regression is shown below.
 
 ![](examples/gp_regression.png)
 
+### Auto-regressive multi-fidelity Gaussian process
+
+Give data with low accuracy and data with high accuracy, we can fit an auto-regressive multi-fidelity Gaussian process model to the data and make predictions at new input `X_test`.
+
+These two test cases are from [Deep Gaussian Processes for Multi-fidelity Modeling](https://arxiv.org/abs/1903.07320)
+
+![](examples/mfgp_comparison_A.png)
+
+![](examples/mfgp_comparison_B.png)
+
 ### Single-objective Bayesian optimization using expected improvement
 
 To optimize a single-objective function `f`, we can use the analytical expected improvement acquisition function.
@@ -62,6 +72,8 @@ bo = BayesianOptimization(objective_function, bounds, batch_size=1, n_iter=15)
 Based on qEI, we can optimize the objective function with multiple candidates in each iteration. Given a function with high-frequency features as below, BO with qEI can be more efficient than EI.
 
 ![](examples/qEI_5.gif)
+
+
 
 ## Installation
 
