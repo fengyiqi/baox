@@ -33,28 +33,35 @@ To optimize a single-objective function `f`, we can use the analytical expected 
 from baox.bo.bayesian import BayesianOptimization
 import jax.numpy as jnp
 
-# Example f
+# Example usage
 def objective_function(x):
     return -jnp.sin(3 * x) - x**2 + 0.7 * x
 
+bounds = (-2, 2)
 key = jax.random.key(0)
-bo = BayesianOptimization(objective_function, bounds=(-2, 2))
-X_samples, y_samples = bo.run(key, n_iter=15, use_mc=False, n_samples=10)
+bo = BayesianOptimization(objective_function, bounds, n_iter=15)
+X_samples, y_samples = bo.run(key)
 
 print(f"Best point found: {X_samples[jnp.argmax(y_samples)]}")
 ```
 
 
-![](examples/use_exp/iteration_14.png)
+![](examples/EI_1.gif)
 
 
 We can also use sampling-based expected improvement to optimize the objective function by setting `use_mc=True`.
 
 ```python
-X_samples, y_samples = bo.run(key, n_iter=15, use_mc=True, n_samples=10)
+bo = BayesianOptimization(objective_function, bounds, batch_size=1, n_iter=15)
 ```
 
-![](examples/use_mc/iteration_14.png)
+![](examples/qEI_1.gif)
+
+### Single-objective Bayesian optimization using qEI
+
+Based on qEI, we can optimize the objective function with multiple candidates in each iteration. Given a function with high-frequency features as below, BO with qEI can be more efficient than EI.
+
+![](examples/qEI_5.gif)
 
 ## Installation
 
