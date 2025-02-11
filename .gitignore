@@ -170,3 +170,8 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# test data
+examples/qEI_5
+examples/use_exp
+examples/use_mc
