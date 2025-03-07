@@ -141,15 +141,14 @@ class AutoRegressiveMFGP:
         fidelities = self.fidelities
         params: MFGPHyperparameters = jax.tree_map(jnp.exp, log_params)
         noise = params.noise[0]
-        # TODO use jit instead
+        # Update kernel parameters for fidelity 0
         self.kernels[0].lengthscale = params.lengthscale[0]
         self.kernels[0].variance = params.variance[0]
 
         data_0 = self.dataset.get_data(0)
         x_0, y_0 = data_0.x_train, data_0.y_train
 
-        K0 = self.kernels[0](x_0, x_0) + noise * \
-            jnp.eye(x_0.shape[0]) + 1e-6 * jnp.eye(x_0.shape[0])
+        K0 = self.kernels[0](x_0, x_0) + noise * jnp.eye(x_0.shape[0]) + 1e-6 * jnp.eye(x_0.shape[0])
         L0 = cholesky(K0, lower=True)
         alpha0 = cho_solve((L0, True), y_0)
         log_det_K0 = 2.0 * jnp.sum(jnp.log(jnp.diag(L0)))
@@ -173,16 +172,17 @@ class AutoRegressiveMFGP:
             # Compute the residual (discrepancy) for fidelity level l:
             y_residual = y_l - rho * pred_lower
             # Build the covariance matrix for the discrepancy process
-            K_l = self.kernels[l](X_l, X_l) + noise * \
-                jnp.eye(X_l.shape[0]) + 1e-6 * jnp.eye(X_l.shape[0])
+            K_l = self.kernels[l](X_l, X_l) + noise * jnp.eye(X_l.shape[0]) + 1e-6 * jnp.eye(X_l.shape[0])
             L_l = cholesky(K_l, lower=True)
             alpha_l = cho_solve((L_l, True), y_residual)
             log_det_K_l = 2.0 * jnp.sum(jnp.log(jnp.diag(L_l)))
 
             loss_total += 0.5 * (y_residual.T @ alpha_l + log_det_K_l)
 
-            def _pred(x):
-                return rho * pred(x) + self.kernels[l](x, X_l) @ alpha_l
+            # Capture the previous predictor so we don't call the updated one recursively.
+            prev_pred = pred
+            def _pred(x, prev_pred=prev_pred, rho=rho, X_l=X_l, alpha_l=alpha_l, kernel=self.kernels[l]):
+                return rho * prev_pred(x) + kernel(x, X_l) @ alpha_l
             pred = _pred
 
         return jnp.squeeze(loss_total)
@@ -286,7 +286,6 @@ class AutoRegressiveMFGP:
         Returns:
             Tuple[jnp.ndarray, jnp.ndarray]: The composite predicted mean and covariance at X_new.
         """
-        # === Fidelity level 0: Base GP ===
         data_0 = self.dataset.get_data(0)
         X0, y0 = data_0.x_train, data_0.y_train
         K0_inv = self.K_invs[0]
@@ -295,50 +294,42 @@ class AutoRegressiveMFGP:
         mu0 = self.kernels[0](X_new, X0) @ (K0_inv @ y0)
         cov0 = self.kernels[0](X_new, X_new) - self.kernels[0](X_new, X0) @ K0_inv @ self.kernels[0](X_new, X0).T
 
-        # These represent the composite predictor at fidelity 0.
         composite_mu = mu0
         composite_cov = cov0
         
-        # Also, compute the composite predictor evaluated at the training inputs for level 0.
-        # We define a function m^(0)(·) for any inputs; here we compute it at the training inputs for the next level.
+        # Define the base predictor function for any inputs.
         def m0(X):
             return self.kernels[0](X, X0) @ (K0_inv @ y0)
         
-        # For the next fidelity level (l = 1), the composite prediction at the training inputs
-        # is given by m^(0)(X) evaluated at the training inputs of fidelity 1.
-        data_1 = self.dataset.get_data(1)
-        X1 = data_1.x_train
-        composite_mu_train = m0(X1)
+        pred = m0  # composite predictor (mean function) starting from fidelity 0
         
-        # === Loop over higher fidelities (l = 1, 2, ..., self.fidelities - 1) ===
+        # --- Loop over higher fidelities (l = 1, 2, ..., self.fidelities - 1) ---
         for l in range(1, self.fidelities):
-            # Get training data for fidelity level l.
             data_l = self.dataset.get_data(l)
             X_l, y_l = data_l.x_train, data_l.y_train
-            # For fidelity l, noise is stored at self.noises[l] and the scaling factor at self.rhos[l-1].
             rho_l = self.rhos[l-1]
             K_l_inv = self.K_invs[l]
-
-            # Compute the residual (discrepancy) at the training inputs for fidelity l:
-            # r_l = y_l - ρ^(l-1) * m^(l-1)(X_l)
-            residual = y_l - rho_l * composite_mu_train
-
-            # Compute the discrepancy prediction at new inputs:
-            # m_δ^(l)(X_new) = k^(l)(X_new, X_l) @ K_l_inv @ residual
+            
+            # Compute the composite prediction at the training inputs for fidelity l.
+            # This ensures we have the correct shape (matching y_l).
+            pred_lower = pred(X_l)  # shape: (n_l,)
+            # Compute the discrepancy residual:
+            residual = y_l - rho_l * pred_lower  # both should have shape (n_l,)
+            
+            # Compute discrepancy prediction at new inputs:
             m_delta_new = self.kernels[l](X_new, X_l) @ (K_l_inv @ residual)
-
-            # Update the composite predictor at new inputs:
             composite_mu = rho_l * composite_mu + m_delta_new
 
-            # Compute the discrepancy covariance at new inputs:
+            # Compute discrepancy covariance at new inputs:
             cov_delta = self.kernels[l](X_new, X_new) - self.kernels[l](X_new, X_l) @ K_l_inv @ self.kernels[l](X_new, X_l).T
-            # Update the composite covariance:
             composite_cov = (rho_l ** 2) * composite_cov + cov_delta
 
-            # --- Update the composite predictor at training inputs for the next fidelity level ---
-            # Compute m^(l)(X_l) = ρ^(l-1) * m^(l-1)(X_l) + k^(l)(X_l, X_l) @ K_l_inv @ residual
-            m_delta_train = self.kernels[l](X_l, X_l) @ (K_l_inv @ residual)
-            composite_mu_train = rho_l * composite_mu_train + m_delta_train
+            # --- Update composite predictor function for training inputs ---
+            # Capture the current predictor to avoid recursive self-reference.
+            prev_pred = pred
+            def new_pred(x, prev_pred=prev_pred, rho=rho_l, X_l=X_l, K_l_inv=K_l_inv, residual=residual, kernel=self.kernels[l]):
+                return rho * prev_pred(x) + kernel(x, X_l) @ (K_l_inv @ residual)
+            pred = new_pred
 
         return composite_mu, composite_cov
 
