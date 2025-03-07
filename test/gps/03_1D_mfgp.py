@@ -23,7 +23,7 @@ kernel = MaternKernel(lengthscale=jnp.array([1.0]), variance=1.0)
 for f in [MFLinearA, MFLinearB]:
     
     low_f = generate_dataset(f.low_f, jnp.array([bounds]), 12, seed=2)
-    high_f = generate_dataset(f.high_f, jnp.array([bounds]), 12, seed=2)
+    high_f = generate_dataset(f.high_f, jnp.array([bounds]), 4, seed=2)
 
     # Train GP on Low-Fidelity Data Only
     gp_low = SingleOuputGP(
