@@ -2,6 +2,7 @@
 
 cd ~/baox/examples
 
+
 python tutorial_qbo.py
 
 

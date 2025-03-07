@@ -9,35 +9,38 @@ jax.config.update("jax_enable_x64", True)
 import jax.numpy as jnp
 import jax.random as random
 import matplotlib.pyplot as plt
-from baox.surrogate.kernel import MaternKernel
+from baox.surrogate.kernel import MaternKernel, RBFKernel
 from baox.surrogate.gp import GaussianProcess
 from baox.surrogate.mf_gp import AutoRegressiveMFGP
 
 # Generate synthetic low-fidelity and high-fidelity data
-key = random.PRNGKey(0)
+key = random.PRNGKey(2)
 
 def high_fidelity_function(X):
     """Simulated high-fidelity function."""
-    return (6.0 * X - 2.0)**2 * jnp.sin(12.0 * X - 4.0)
-    # return 5.0 * X**2 * jnp.sin(12.0 * X)
+    # return (6.0 * X - 2.0)**2 * jnp.sin(12.0 * X - 4.0)
+    return 5.0 * X**2 * jnp.sin(12.0 * X)
 
 def low_fidelity_function(X):
     """Simulated low-fidelity function."""
-    return 0.5 * high_fidelity_function(X) + 10.0 * (X - 0.5) + 5.0
-    # return 2.0 * high_fidelity_function(X) + (X**3 - 0.5) * jnp.sin(3.0 * X - 0.5) + 4.0 * jnp.cos(2.0 * X)
+    # return 0.5 * high_fidelity_function(X) + 10.0 * (X - 0.5) + 5.0
+    return 2.0 * high_fidelity_function(X) + (X**3 - 0.5) * jnp.sin(3.0 * X - 0.5) + 4.0 * jnp.cos(2.0 * X)
 
 bounds = (0, 1)
 
+# X_low = random.uniform(key, (12,), minval=bounds[0], maxval=bounds[1]).reshape(-1, 1)
 X_low = jnp.linspace(bounds[0], bounds[1], 12).reshape(-1, 1)
 y_low = low_fidelity_function(X_low)
 
-X_high = random.uniform(key, (4,), minval=bounds[0], maxval=bounds[1]).reshape(-1, 1)
+key, _ = random.split(key)
+
+# X_high = random.uniform(key, (4,), minval=bounds[0], maxval=bounds[1]).reshape(-1, 1)
 X_high = jnp.linspace(bounds[0], bounds[1], 4).reshape(-1, 1)
 y_high = high_fidelity_function(X_high)
 
 # Define kernels
-kernel_low = MaternKernel(lengthscale=1.0, variance=1.0)
-kernel_high = MaternKernel(lengthscale=1.0, variance=1.0)
+kernel_low = MaternKernel(lengthscale=jnp.array([1.0]), variance=1.0)
+kernel_high = MaternKernel(lengthscale=jnp.array([1.0]), variance=1.0)
 
 # Train GP on Low-Fidelity Data Only
 gp_low = GaussianProcess(kernel_low, noise=1e-2)
@@ -48,10 +51,10 @@ gp_high = GaussianProcess(kernel_high, noise=1e-2)
 gp_high.fit(X_high, y_high.flatten())
 
 # Train Multi-Fidelity GP
-kernel_low = MaternKernel(lengthscale=1.0, variance=1.0)
-kernel_high = MaternKernel(lengthscale=1.0, variance=1.0)
+kernel_low = MaternKernel(lengthscale=jnp.array([1.0]), variance=1.0)
+kernel_high = MaternKernel(lengthscale=jnp.array([1.0]), variance=1.0)
 mfgp = AutoRegressiveMFGP(kernel_low, kernel_high)
-mfgp.fit(X_low, y_low, X_high, y_high, lr=0.01, steps=200)
+mfgp.fit(X_low, y_low, X_high, y_high)
 
 # Generate test points for prediction
 X_test = jnp.linspace(bounds[0], bounds[1], 100).reshape(-1, 1)
@@ -118,4 +121,4 @@ ax.legend()
 ax.grid()
 
 plt.tight_layout()
-plt.savefig("mfgp_comparison_A.png")
+plt.savefig("mfgp_comparison_B.png")

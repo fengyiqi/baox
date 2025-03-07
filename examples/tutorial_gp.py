@@ -31,9 +31,9 @@ if __name__ == "__main__":
     Y_test = jnp.sin(X_test).flatten()
 
     kernel_configs = [
-        ("blue", RBFKernel(lengthscale=1.0, variance=1.0)),
-        ("green", MaternKernel(lengthscale=1.0, variance=1.0, nu=1.5)),
-        ("red", MaternKernel(lengthscale=1.0, variance=1.0, nu=2.5))
+        ("blue", RBFKernel(lengthscale=jnp.array([1.0]), variance=1.0)),
+        ("green", MaternKernel(lengthscale=jnp.array([1.0]), variance=1.0, nu=1.5)),
+        ("red", MaternKernel(lengthscale=jnp.array([1.0]), variance=1.0, nu=2.5))
     ]
 
     plt.figure(figsize=(10, 5))

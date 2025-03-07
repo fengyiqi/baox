@@ -6,7 +6,7 @@ os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "False"
 import jax
 jax.config.update("jax_enable_x64", True)
 
-from baox.bo.bayesian import BayesianOptimization
+from baox.bo.bo import BayesianOptimization
 import jax.numpy as jnp
 
 # Example usage

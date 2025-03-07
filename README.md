@@ -12,66 +12,55 @@
 Give a set of input-output pairs `(X, y)`, we can fit a Gaussian process model to the data and make predictions at new input  `X_test`.
 
 ```python
-from baox.surrogate.kernel import RBFKernel, MaternKernel
-from baox.surrogate.gp import GaussianProcess
+from baox.surrogate import MaternKernel, SingleOuputGP
 
-kernel = RBFKernel(lengthscale=1.0, variance=1.0)
-gp = GaussianProcess(kernel, noise=1e-3)
-gp.fit(X, y)
-y_pred, y_std = gp.predict(X_test)
+num_train = 32
+data = generate_dataset(currin, [[0, 1], [0, 1]], random=True, num_samples=num_train)
+# construct a GP model with Matern kernel
+kernel = MaternKernel(lengthscale=jnp.array([1.0, 1.0]), variance=1.0)
+gp = SingleOuputGP(data.x_train, data.y_train, kernel)
+gp.fit()
 ```
 
 An example figure of GP regression is shown below.
 
-![](examples/gp_regression.png)
+<p align="center">
+  <img src="pics/02_2D_gp.png" />
+</p>
 
 ### Auto-regressive multi-fidelity Gaussian process
 
-Give data with low accuracy and data with high accuracy, we can fit an auto-regressive multi-fidelity Gaussian process model to the data and make predictions at new input `X_test`.
+Give data with different fidelity, we can fit an auto-regressive multi-fidelity Gaussian process model to the data and make predictions at new input `X_test`.
 
-These two test cases are from [Deep Gaussian Processes for Multi-fidelity Modeling](https://arxiv.org/abs/1903.07320)
+An example of fitting tow-fidelity data is shown below.
 
-![](examples/mfgp_comparison_A.png)
+<p align="center">
+  <img src="pics/03_1D_mfgp_MFLinearA.png" />
+</p>
 
-![](examples/mfgp_comparison_B.png)
+### Single-objective Bayesian optimization using q-joint expected improvement
 
-### Single-objective Bayesian optimization using expected improvement
-
-To optimize a single-objective function `f`, we can use the analytical expected improvement acquisition function.
+To optimize a single-objective function `f`, we can use the q-joint expected improvement acquisition function.
 
 ```python
-from baox.bo.bayesian import BayesianOptimization
+from baox.bo import BayesianOptimization
+from baox.acquisition import qExpectedImprovementFantasy, qExpectedImprovementJoint
 import jax.numpy as jnp
+from baox.test_functions import currin
 
-# Example usage
-def objective_function(x):
-    return -jnp.sin(3 * x) - x**2 + 0.7 * x
+bounds = [[0, 1], [0, 1]]
+key = jax.random.key(42)
 
-bounds = (-2, 2)
-key = jax.random.key(0)
-bo = BayesianOptimization(objective_function, bounds, n_iter=15)
-X_samples, y_samples = bo.run(key)
-
-print(f"Best point found: {X_samples[jnp.argmax(y_samples)]}")
+# qEI with batch size 3
+bo_batch = BayesianOptimization(currin, bounds, n_iter=20, batch_size=3, acquisition=qExpectedImprovementJoint)
+X_eval, y_eval = bo_batch.run(key)
+X_opt_batch, y_opt_batch = X_eval[jnp.argmax(y_eval)], jnp.max(y_eval)
+print("Optimal solution:", X_opt_batch, y_opt_batch)
 ```
 
-
-![](examples/EI_1.gif)
-
-
-We can also use sampling-based expected improvement to optimize the objective function by setting `use_mc=True`.
-
-```python
-bo = BayesianOptimization(objective_function, bounds, batch_size=1, n_iter=15)
-```
-
-![](examples/qEI_1.gif)
-
-### Single-objective Bayesian optimization using qEI
-
-Based on qEI, we can optimize the objective function with multiple candidates in each iteration. Given a function with high-frequency features as below, BO with qEI can be more efficient than EI.
-
-![](examples/qEI_5.gif)
+<p align="center">
+  <img src="pics/qEIJ_2d3.gif" />
+</p>
 
 
 

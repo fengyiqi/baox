@@ -3,7 +3,7 @@ import matplotlib.animation as animation
 import os
 
 # List of image filenames
-image_files = [f"qMixedFidelityCostAwareEIJoint_cand_3_{i}.png" for i in range(20)]
+image_files = [f"qExpectedImprovementJoint_cand_3_{i}.png" for i in range(20)]
 
 
 # Create a figure and axis
@@ -24,6 +24,6 @@ def update(frame):
 ani = animation.FuncAnimation(fig, update, frames=len(image_files), interval=500)  # 500ms per frame
 
 # Save as GIF
-ani.save("qMFEI_1.gif", writer="pillow", fps=2)  # fps = 2 (2 frames per second)
+ani.save("qEIJ_2d_3.gif", writer="pillow", fps=2)  # fps = 2 (2 frames per second)
 
 print("GIF saved as animation.gif")
