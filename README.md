@@ -32,10 +32,10 @@ An example figure of GP regression is shown below.
 
 Give data with different fidelity, we can fit an auto-regressive multi-fidelity Gaussian process model to the data and make predictions at new input `X_test`.
 
-An example of fitting tow-fidelity data is shown below.
+An example of fitting 4-fidelity data is shown below.
 
 <p align="center">
-  <img src="pics/03_1D_mfgp_MFLinearA.png" />
+  <img src="pics/05_1D_mfgp_4.png" />
 </p>
 
 ### Single-objective Bayesian optimization using q-joint expected improvement
