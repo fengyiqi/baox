@@ -249,3 +249,72 @@ class MFHimmelblau:
         x1, x2 = X[:, 0], X[:, 1]
         y = MFHimmelblau.high_f(X * jnp.array([0.5, 0.8]))
         return 0.5 * y - x2**3 + (x1 + 1)**2
+    
+
+class MFForrester:
+    @staticmethod
+    def f_3(X: jnp.ndarray) -> jnp.ndarray:
+        """
+        Compute the high-fidelity Forrester function.
+
+        The Forrester function is defined as:
+            f(x) = (6x - 2)^2 * sin(12x - 4)
+
+        Args:
+            X (jnp.ndarray): Input array of shape [n, 1].
+
+        Returns:
+            jnp.ndarray: An array of high-fidelity Forrester function values with shape [n].
+        """
+        return (6 * X - 2)**2 * jnp.sin(12 * X - 4)
+
+    @staticmethod
+    def f_2(X: jnp.ndarray) -> jnp.ndarray:
+        """
+        Compute a medium-fidelity Forrester function.
+
+        This variant of the Forrester function uses slightly adjusted parameters:
+            f(x) = (5.5x - 2.5)^2 * sin(12x - 4)
+
+        Args:
+            X (jnp.ndarray): Input array of shape [n, 1].
+
+        Returns:
+            jnp.ndarray: An array of medium-fidelity Forrester function values with shape [n].
+        """
+        return (5.5 * X - 2.5)**2 * jnp.sin(12.0 * X - 4.0)
+
+    @staticmethod
+    def f_1(X: jnp.ndarray) -> jnp.ndarray:
+        """
+        Compute a low-fidelity Forrester function (variant 1).
+
+        This low-fidelity function is defined as a scaled and shifted version of the high-fidelity function:
+            f(x) = 0.75 * f_3(x) + 5(x - 0.5) - 2
+
+        Args:
+            X (jnp.ndarray): Input array of shape [n, 1].
+
+        Returns:
+            jnp.ndarray: An array of low-fidelity Forrester function values with shape [n].
+        """
+        return 0.75 * MFForrester.f_3(X) + 5.0 * (X - 0.5) - 2.0
+
+    @staticmethod
+    def f_0(X: jnp.ndarray) -> jnp.ndarray:
+        """
+        Compute a low-fidelity Forrester function (variant 2).
+
+        This variant is defined as:
+            f(x) = 0.5 * f_3(x) + 10(x - 0.5) - 5
+
+        Args:
+            X (jnp.ndarray): Input array of shape [n, 1].
+
+        Returns:
+            jnp.ndarray: An array of low-fidelity Forrester function values with shape [n].
+        """
+        return 0.5 * MFForrester.f_3(X) + 10.0 * (X - 0.5) - 5.0
+
+        
+        
