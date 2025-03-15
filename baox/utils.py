@@ -48,7 +48,8 @@ def generate_dataset(
     num_samples: int = 5,
     random: bool = True,
     seed: int = 0,
-    noise_level: float = None
+    noise_level: float = None,
+    cost: float = 1.0
 ) -> Dataset:
     """
     Generate a dataset using Latin Hypercube Sampling for a given objective function.
@@ -73,6 +74,9 @@ def generate_dataset(
         noise_level (float, optional): 
             Standard deviation of Gaussian noise to add to the outputs. 
             If None, no noise is added.
+        cost (float, optional):
+            Cost associated with each sample, used for multi-fidelity data. 
+            Defaults to 1.0.
 
     Returns:
         Dataset: A Dataset namedtuple containing:
@@ -80,6 +84,7 @@ def generate_dataset(
             - x_train: The normalized input points with shape [num_samples, d].
             - y_train: The corresponding outputs computed by the objective function, 
               with shape [num_samples].
+            - cost: The cost associated with each sample.
 
     Raises:
         AssertionError: If non-random sampling is requested for multi-dimensional inputs.
@@ -106,4 +111,4 @@ def generate_dataset(
     if noise_level is not None:
         y += noise_level * jax.random.normal(jax.random.PRNGKey(seed), y.shape)
     
-    return Dataset(x, x_norm, y)
+    return Dataset(x, x_norm, y, cost)

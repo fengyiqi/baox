@@ -11,10 +11,12 @@ class Dataset(NamedTuple):
         x (jnp.ndarray): Input data array (could be used for test or auxiliary data).
         x_train (jnp.ndarray): Training input data array.
         y_train (jnp.ndarray): Training output data array.
+        cost (float): Cost for current fidelity level.
     """
     x: jnp.ndarray
     x_train: jnp.ndarray
     y_train: jnp.ndarray
+    cost: float = 1.0
 
 class GPHyperparameters(NamedTuple):
     """
@@ -28,6 +30,7 @@ class GPHyperparameters(NamedTuple):
     lengthscale: jnp.ndarray
     variance: jnp.ndarray
     noise: jnp.ndarray
+    
     
 class MFGPHyperparameters(NamedTuple):
     """
