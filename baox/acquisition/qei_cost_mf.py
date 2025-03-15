@@ -5,6 +5,7 @@ import copy
 import optax
 from functools import partial
 from baox.acquisition.base import BaseAcquisitionFunction
+from baox.surrogate import AutoRegressiveMFGP
 
     
 
@@ -19,11 +20,11 @@ class qCostAwareMultiFidelityEI(BaseAcquisitionFunction):
       - values near 0 correspond to low-fidelity evaluations (cost_low)
       - values near 1 correspond to high-fidelity evaluations (cost_high)
     """
-    def __init__(self, gp, cost_low: float, cost_high: float, n_samples: int = 256,
+    def __init__(self, gp: AutoRegressiveMFGP, n_samples: int = 256,
                  n_restarts: int = 16, n_steps: int = 200, lr: float = 1e-2):
         super().__init__(gp)
-        self.cost_low = cost_low
-        self.cost_high = cost_high
+        self.dataset = gp.dataset
+        self.gp = gp
         self.n_samples = n_samples
         self.n_restarts = n_restarts
         self.n_steps = n_steps
@@ -36,7 +37,7 @@ class qCostAwareMultiFidelityEI(BaseAcquisitionFunction):
         shape (batch_size, d+1). After optimization, you can threshold the fidelity indicator
         (e.g., <0.5 → low, >=0.5 → high).
         """
-        d = self.gp.X_high.shape[1]  # dimension of the input space (excluding fidelity indicator)
+        d = self.gp.dim  # dimension of the input space (excluding fidelity indicator)
 
         def objective(x: jnp.ndarray) -> jnp.ndarray:
             # Reshape flattened vector into (batch_size, d+1)
