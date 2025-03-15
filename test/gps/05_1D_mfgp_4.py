@@ -22,9 +22,11 @@ kernel = MaternKernel(lengthscale=jnp.array([1.0]), variance=1.0)
 data_0 = generate_dataset(MFForrester.f_0, jnp.array([bounds]), 48, seed=1)
 data_1 = generate_dataset(MFForrester.f_1, jnp.array([bounds]), 24, seed=1)
 data_2 = generate_dataset(MFForrester.f_2, jnp.array([bounds]), 18, seed=1)
-data_3 = generate_dataset(MFForrester.f_3, jnp.array([bounds]), 8, seed=1)
+data_3 = generate_dataset(MFForrester.f_3, jnp.array([bounds]), 6, seed=1)
 
-gp = SingleOuputGP(data_3.x_train, data_3.y_train, copy.deepcopy(kernel), noise=1e-2)
+data_3_single = generate_dataset(MFForrester.f_3, jnp.array([bounds]), 10, seed=1)
+
+gp = SingleOuputGP(data_3_single.x_train, data_3_single.y_train, copy.deepcopy(kernel), noise=1e-2)
 gp.fit(steps=1000)
 
 # Train Multi-Fidelity GP
