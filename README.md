@@ -63,6 +63,14 @@ print("Optimal solution:", X_opt_batch, y_opt_batch)
 </p>
 
 
+### Single-objective multi-fidelity Bayesian optimization
+
+Here is an example of an SOMFBO with cost-aware expected improvement acquisition function. Refer to [03_1D_mfbo.py](test/bo/03_1D_mfbo.py) for more details.
+
+<p align="center">
+  <img src="pics/qMFCEI_1d_5.gif" />
+</p>
+
 
 ## Installation
 

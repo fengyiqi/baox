@@ -3,11 +3,11 @@ import matplotlib.animation as animation
 import os
 
 # List of image filenames
-image_files = [f"qExpectedImprovementJoint_cand_3_{i}.png" for i in range(20)]
+image_files = [f"mfbo_1D_step_{i}.png" for i in range(20)]
 
 
 # Create a figure and axis
-fig, ax = plt.subplots(figsize=(18, 5))
+fig, ax = plt.subplots(figsize=(10, 6))
 
 # Load the first image to set the plot
 img = plt.imread(image_files[0])
@@ -24,6 +24,6 @@ def update(frame):
 ani = animation.FuncAnimation(fig, update, frames=len(image_files), interval=500)  # 500ms per frame
 
 # Save as GIF
-ani.save("qEIJ_2d_3.gif", writer="pillow", fps=2)  # fps = 2 (2 frames per second)
+ani.save("qMFCEI_1d_5.gif", writer="pillow", fps=2)  # fps = 2 (2 frames per second)
 
 print("GIF saved as animation.gif")

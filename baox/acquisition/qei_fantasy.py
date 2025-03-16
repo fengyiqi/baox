@@ -50,19 +50,12 @@ class qExpectedImprovementFantasy(BaseAcquisitionFunction):
         Returns [batch_size, d] array of chosen points.
         """
         chosen_points = []
-        gp_copy = copy.deepcopy(self.gp)  # so we don't modify the real GP
-        # dimension of the input space (1 if 1D)
+        gp_copy = copy.deepcopy(self.gp)  
 
         for _ in range(batch_size):
-            # 1) Find best single point by gradient-based max of EI
             x_star = self._maximize_single_EI(gp_copy, key)
-
-            # 2) "Fantasy" observation = predicted mean (or a random sample from posterior)
             mu, _ = gp_copy.predict(x_star[None, :])
-            # or mu[0] + random.normal(...) * jnp.sqrt(sigma[0])
             y_fantasy = mu[0]
-
-            # 3) Temporarily update gp_copy with the new "fantasy" data
             gp_copy.x_train = jnp.concatenate(
                 [gp_copy.x_train, x_star[None, :]], axis=0)
             gp_copy.y_train = jnp.concatenate(
@@ -70,8 +63,6 @@ class qExpectedImprovementFantasy(BaseAcquisitionFunction):
             gp_copy.fit()
 
             chosen_points.append(x_star)
-
-            # Update random key
             key, _ = jax.random.split(key)
 
         return jnp.stack(chosen_points)
@@ -85,46 +76,30 @@ class qExpectedImprovementFantasy(BaseAcquisitionFunction):
         """
         d = gp_copy.x_train.shape[1]
 
-        # Negative single-point EI objective (so that we do gradient descent).
         def EI_objective(x: jnp.ndarray) -> jnp.ndarray:
-            # x: shape (d,)
-            # We'll do a single-point EI, returning scalar. 
             return -self._ei_single_point_mc(gp_copy, x[None, :], key)
 
-        # The function that runs one entire "restart"
         def single_restart(subkey: jax.random.PRNGKey):
-            # 1) Random init
             x0 = jax.random.uniform(subkey, shape=(d,))
             opt_state = optimizer.init(x0)
-
-            # 2) A single gradient step function
+            
             def step_fn(carry, _):
                 x, opt_state = carry
                 val, grads = jax.value_and_grad(EI_objective)(x)
                 updates, opt_state = optimizer.update(grads, opt_state)
                 x = optax.apply_updates(x, updates)
-                # Clip to domain
                 x = jnp.clip(x, 0, 1)
                 return (x, opt_state), val
 
-            # 3) Unroll n_steps using jax.lax.scan
             (xf, _), vals = jax.lax.scan(step_fn, (x0, opt_state), jnp.arange(self.n_steps))
             final_val = vals[-1]
-            return xf, final_val  # shape (d,), scalar
+            return xf, final_val  
 
-        # Build an optimizer
         optimizer = optax.adam(self.lr)
-
-        # Create subkeys for each random restart
-        subkeys = jax.random.split(key, self.n_restarts)  # shape (n_restarts,)
-
-        # Vectorize single_restart over subkeys => 
-        #   final_xs shape: (n_restarts, d)
-        #   final_vals shape: (n_restarts,)
+        subkeys = jax.random.split(key, self.n_restarts)  
         final_xs, final_vals = jax.vmap(single_restart)(subkeys)
 
-        # 4) Pick best among the restarts
-        best_idx = jnp.argmin(final_vals)  # since we minimized negative EI
+        best_idx = jnp.argmin(final_vals)  
         best_x = final_xs[best_idx]
         return best_x
     
@@ -161,19 +136,14 @@ class qExpectedImprovementFantasy(BaseAcquisitionFunction):
         :param n_samples: number of MC samples
         :return: EI values, shape [N]
         """
-        mu, sigma = gp_local.predict(X)   # each shape [N]
-        sigma = jnp.maximum(sigma, 1e-9)  # avoid zero stdev
+        mu, sigma = gp_local.predict(X)   
+        sigma = jnp.maximum(sigma, 1e-9)  
         f_best = jnp.max(gp_local.y_train) if gp_local.y_train.size > 0 else 0.0
 
-        # Draw samples from the posterior: f_samples ~ N(mu, sigma)
-        # shape will be [N, n_samples]
         subkey, _ = jax.random.split(key)
         normal_samples = jax.random.normal(subkey, shape=(X.shape[0], n_samples))
         f_samples = mu[:, None] + jnp.sqrt(sigma)[:, None] * normal_samples
 
-        # Improvement = max(0, f - f_best - xi)
         improvement = jnp.maximum(f_samples - f_best, 0.0)
-
-        # MC average across the samples axis
-        ei_estimate = jnp.mean(improvement, axis=1)  # shape [N]
+        ei_estimate = jnp.mean(improvement, axis=1)  
         return ei_estimate[0]

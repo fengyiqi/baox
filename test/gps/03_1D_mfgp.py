@@ -22,15 +22,15 @@ kernel = MaternKernel(lengthscale=jnp.array([1.0]), variance=1.0)
 
 for f in [MFLinearA, MFLinearB]:
     
-    low_f = generate_dataset(f.low_f, jnp.array([bounds]), 12, seed=2)
-    high_f = generate_dataset(f.high_f, jnp.array([bounds]), 4, seed=2)
+    low_f = generate_dataset(f.low_f, jnp.array([bounds]), 16, seed=2)
+    high_f = generate_dataset(f.high_f, jnp.array([bounds]), 5, seed=2)
 
     # Train GP on Low-Fidelity Data Only
     gp_low = SingleOuputGP(
         low_f.x_train, 
         low_f.y_train, 
         copy.deepcopy(kernel), 
-        noise=1e-1
+        noise=1e-2
     )
     gp_low.fit()
 
@@ -39,14 +39,14 @@ for f in [MFLinearA, MFLinearB]:
         high_f.x_train, 
         high_f.y_train,
         copy.deepcopy(kernel), 
-        noise=1e-1
+        noise=1e-2
     )
     gp_high.fit()
 
     # Train Multi-Fidelity GP
     mf_dataset = MultiFidelityDataset([low_f, high_f])
     mfgp = AutoRegressiveMFGP(mf_dataset, kernel, noise=1e-2)
-    mfgp.fit(steps=500)
+    mfgp.fit()
 
     # Generate test points for prediction
     X_test = jnp.linspace(0, 1, 100).reshape(-1, 1)

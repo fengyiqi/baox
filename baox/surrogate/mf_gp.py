@@ -186,10 +186,9 @@ class AutoRegressiveMFGP:
             pred = _pred
 
         return jnp.squeeze(loss_total)
+  
 
-    
-
-    def fit(self, lr: float = 0.01, steps: int = 200):
+    def fit(self, lr: float = 0.001, steps: int = 5000):
         """
         Train the auto-regressive multi-fidelity Gaussian Process (AR-MFGP) model.
 

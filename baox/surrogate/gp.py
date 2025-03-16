@@ -126,7 +126,6 @@ class SingleOuputGaussianProcess(BaseGaussianProcess):
             return 0.5 * self.y_train.T @ alpha + 0.5 * log_det_K + \
                 0.5 * self.x_train.shape[0] * jnp.log(2.0 * jnp.pi)
 
-        # Compute gradients of loss
         loss_grad = grad(loss)
 
         def step(state, _):
@@ -146,10 +145,8 @@ class SingleOuputGaussianProcess(BaseGaussianProcess):
             params = optax.apply_updates(params, updates)
             return (params, opt_state), None
 
-        # Run optimization using lax.scan for efficient iteration
         (log_params, _), _ = lax.scan(step, (log_params, opt_state), None, length=steps)
 
-        # Update final hyperparameters in original space
         self.trainable_params = jax.tree_map(jnp.exp, log_params)
         self._update_to_kernel()
         self._update_K_inv()

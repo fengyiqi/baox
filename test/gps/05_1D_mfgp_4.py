@@ -7,10 +7,8 @@ import jax
 jax.config.update("jax_enable_x64", True)
 
 import jax.numpy as jnp
-import jax.random as random
 import matplotlib.pyplot as plt
-from baox.surrogate.kernel import MaternKernel
-from baox.surrogate import AutoRegressiveMFGP, SingleOuputGP
+from baox.surrogate import AutoRegressiveMFGP, SingleOuputGP, MaternKernel
 from baox.utils import generate_dataset, denormalize
 import copy
 from baox.data_types import MultiFidelityDataset
@@ -24,17 +22,16 @@ data_1 = generate_dataset(MFForrester.f_1, jnp.array([bounds]), 24, seed=1)
 data_2 = generate_dataset(MFForrester.f_2, jnp.array([bounds]), 18, seed=1)
 data_3 = generate_dataset(MFForrester.f_3, jnp.array([bounds]), 6, seed=1)
 
+# in practice we can use the resouces of lower fidelities to generate more data for higher fidelities
 data_3_single = generate_dataset(MFForrester.f_3, jnp.array([bounds]), 10, seed=1)
 
 gp = SingleOuputGP(data_3_single.x_train, data_3_single.y_train, copy.deepcopy(kernel), noise=1e-2)
 gp.fit(steps=1000)
 
-# Train Multi-Fidelity GP
 mf_dataset = MultiFidelityDataset([data_0, data_1, data_2, data_3])
 mfgp = AutoRegressiveMFGP(mf_dataset, copy.deepcopy(kernel), noise=1e-2)
 mfgp.fit(steps=1000)
 
-# Generate test points for prediction
 X_test = jnp.linspace(0, 1, 100).reshape(-1, 1)
 x = denormalize(X_test, bounds[0], bounds[1])
 mu, var = gp.predict(X_test)
@@ -42,7 +39,6 @@ mu_mf, var_mf = mfgp.predict(X_test)
 error = jnp.abs(mu - MFForrester.f_3(x).flatten())
 error_mf = jnp.abs(mu_mf - MFForrester.f_3(x).flatten())
 
-# Plot results
 fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 
 axes[0].plot(x, MFForrester.f_3(x), label="Fidelity 3", color="black", linestyle="--", linewidth=2)

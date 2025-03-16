@@ -82,7 +82,7 @@ class MultiFidelityDataset:
             # Check if initial_data is a list of Dataset instances.
             if isinstance(initial_data, list) and all(isinstance(ds, Dataset) for ds in initial_data):
                 for fidelity, ds in enumerate(initial_data):
-                    self._data_dict[fidelity] = Dataset(ds.x, ds.x_train, ds.y_train)
+                    self._data_dict[fidelity] = initial_data[fidelity]
             # Else if it's a single Dataset instance.
             elif isinstance(initial_data, Dataset):
                 self._data_dict[0] = Dataset(initial_data.x, initial_data.x_train, initial_data.y_train)
@@ -110,7 +110,19 @@ class MultiFidelityDataset:
             x = jnp.concatenate([current_data.x, dataset.x], axis=0)
             x_train = jnp.concatenate([current_data.x_train, dataset.x_train], axis=0)
             y_train = jnp.concatenate([current_data.y_train, dataset.y_train], axis=0)
-            self._data_dict[fidelity] = Dataset(x, x_train, y_train)
+            self._data_dict[fidelity] = Dataset(x, x_train, y_train, cost=dataset.cost)
+            
+    def set_data(self, fidelity: int, dataset: Dataset) -> None:
+        """
+        Set the data for the specified fidelity level using a Dataset instance.
+
+        Args:
+            fidelity (int): Integer index of the fidelity level.
+            dataset (Dataset): A Dataset instance containing the data arrays to set.
+        """
+        if not isinstance(dataset, Dataset):
+            raise ValueError("The provided dataset must be a Dataset instance.")
+        self._data_dict[fidelity] = dataset
 
     def get_data(self, fidelity: int) -> Dataset:
         """
@@ -139,10 +151,21 @@ class MultiFidelityDataset:
         """
         return sorted(self._data_dict.keys())
     
+    def list_costs(self) -> list:
+        """
+        List all costs associated with the fidelity levels.
+
+        Returns:
+            list: A sorted list of costs associated with each fidelity level.
+        """
+        return [self._data_dict[fidelity].cost for fidelity in self.list_fidelities()]
+    
     def __str__(self) -> None:
         """
         Print a summary of the dataset, showing the number of samples for each fidelity level.
         """
+        summary = ["Dataset Summary:"]
         for fidelity, data in self._data_dict.items():
-            print(f"Fidelity {fidelity}: {data.x_train.shape[0]} samples.")
+            summary.append(f"\tFidelity {fidelity}: {data.x_train.shape[0]} samples.")
+        return "\n".join(summary)
 

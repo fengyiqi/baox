@@ -23,7 +23,7 @@ class qExpectedImprovementJoint(BaseAcquisitionFunction):
         lr: float = 1e-2
     ):
         super().__init__(gp)
-        self.n_samples = n_samples   # how many MC samples
+        self.n_samples = n_samples   
         self.n_restarts = n_restarts
         self.n_steps = n_steps
         self.lr = lr
@@ -36,11 +36,8 @@ class qExpectedImprovementJoint(BaseAcquisitionFunction):
         """
         Return a [batch_size, d] array by maximizing joint qEI in a single shot.
         """
-        # Flatten domain dimension: let's assume the domain is [0,1]^d for each point,
-        # or check your known "self.gp.X_train" for dimension info.
         d = self.gp.x_train.shape[1]
 
-        # We do one big optimization to pick the entire batch at once.
         best_xbatch = self._maximize_qEI(key, batch_size, d)
         return best_xbatch
 
@@ -51,16 +48,12 @@ class qExpectedImprovementJoint(BaseAcquisitionFunction):
         Then do multiple random restarts (vmap).
         """
         def qEI_objective(x_flat: jnp.ndarray) -> jnp.ndarray:
-            # Un-flatten
             X_batch = x_flat.reshape((q, d))
-            # We want to *maximize* qEI, so we do gradient descent on negative
             return -self._qEI_mc(X_batch, key, self.n_samples)
 
         optimizer = optax.adam(self.lr)
 
-        # We'll define a single_restart function that starts from a random X_flat
         def single_restart(subkey: jax.random.PRNGKey):
-            # shape (q, d)
             x0 = jax.random.uniform(subkey, shape=(q, d), minval=0.0, maxval=1.0)
             x0_flat = x0.ravel()
             opt_state = optimizer.init(x0_flat)
@@ -70,22 +63,17 @@ class qExpectedImprovementJoint(BaseAcquisitionFunction):
                 val, grads = jax.value_and_grad(qEI_objective)(x_flat)
                 updates, opt_state = optimizer.update(grads, opt_state)
                 x_flat = optax.apply_updates(x_flat, updates)
-                # clip to domain [0,1]
                 x_flat = jnp.clip(x_flat, 0.0, 1.0)
                 return (x_flat, opt_state), val
 
             (xf, _), vals = jax.lax.scan(step_fn, (x0_flat, opt_state), jnp.arange(self.n_steps))
-            final_val = vals[-1]  # negative qEI at final step
+            final_val = vals[-1]  
             return xf, final_val
 
-        # Vectorize across n_restarts
         subkeys = jax.random.split(key, self.n_restarts)
         final_xs, final_vals = jax.vmap(single_restart)(subkeys)
 
-        # final_xs: (n_restarts, q*d)
-        # final_vals: (n_restarts,)
-
-        best_idx = jnp.argmin(final_vals)  # since we minimized negative qEI
+        best_idx = jnp.argmin(final_vals) 
         best_flat = final_xs[best_idx]
         best_xbatch = best_flat.reshape((q, d))
         return best_xbatch
@@ -106,13 +94,13 @@ class qExpectedImprovementJoint(BaseAcquisitionFunction):
         q = X_batch.shape[0]
         mu, cov = self.gp.joint_predict(X_batch)
 
-        L = jnp.linalg.cholesky(cov + 1e-9*jnp.eye(q))  # ensure PD
+        L = jnp.linalg.cholesky(cov + 1e-9*jnp.eye(q))  
         key, subkey = jax.random.split(key)
         z = jax.random.normal(subkey, (n_samples, q))
-        f_samples = mu + z @ L.T  # shape [n_samples, q]
+        f_samples = mu + z @ L.T  
 
         f_best = jnp.max(self.gp.y_train) if self.gp.y_train.size > 0 else 0.0
-        best_in_batch = jnp.max(f_samples, axis=1)  # shape [n_samples]
+        best_in_batch = jnp.max(f_samples, axis=1) 
         improvement = jnp.maximum(best_in_batch - f_best, 0.0)
         qEI = jnp.mean(improvement)
         return qEI
